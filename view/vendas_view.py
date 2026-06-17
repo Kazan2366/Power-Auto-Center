@@ -72,17 +72,21 @@ class VendasView(ctk.CTkFrame):
         self.tabela_itens = DataTable(painel, [
             ("descricao", "Item", 150), ("quantidade", "Qtd", 50), ("subtotal", "Subtotal", 90),
         ])
-        self.tabela_itens.pack(fill="both", expand=True, padx=14, pady=(0, 6))
 
-        self.lbl_total = ctk.CTkLabel(painel, text="Total: R$ 0,00", font=theme.fonte_subtitulo())
-        self.lbl_total.pack(anchor="e", padx=14)
-
+        # Total e botões são ancorados ao rodapé (side="bottom") ANTES da tabela,
+        # garantindo que fiquem sempre visíveis mesmo quando a janela é baixa.
         botoes = ctk.CTkFrame(painel, fg_color="transparent")
-        botoes.pack(fill="x", padx=14, pady=(6, 12))
+        botoes.pack(side="bottom", fill="x", padx=14, pady=(6, 12))
         ctk.CTkButton(botoes, text="Registrar venda", fg_color=theme.COR_SUCESSO,
                       hover_color=theme.COR_SUCESSO_HOVER, command=self._registrar).pack(fill="x", pady=3)
         ctk.CTkButton(botoes, text="Limpar carrinho", fg_color=theme.COR_PAINEL,
                       hover_color=theme.COR_BORDA, command=self._limpar_carrinho).pack(fill="x", pady=3)
+
+        self.lbl_total = ctk.CTkLabel(painel, text="Total: R$ 0,00", font=theme.fonte_subtitulo())
+        self.lbl_total.pack(side="bottom", anchor="e", padx=14)
+
+        # A tabela preenche o espaço restante entre os campos e o rodapé.
+        self.tabela_itens.pack(fill="both", expand=True, padx=14, pady=(0, 6))
 
         self.combo_tipo.set("veiculo")
         self._carregar_produtos()
