@@ -12,11 +12,13 @@ import sys
 
 from backend import Backend
 from database.connection import DB_FILE
+from seed_exemplos import garantir_dados_exemplo
 
 
 def executar_headless():
     """Modo sem UI: inicializa o banco e imprime os indicadores (debug/handoff)."""
     backend = Backend()
+    garantir_dados_exemplo(backend)  # sistema nunca começa vazio
     print("Backend da Concessionária inicializado.")
     print(f"Banco de dados: {DB_FILE}")
     print("Indicadores (dashboard):")

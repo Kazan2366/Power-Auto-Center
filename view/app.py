@@ -8,6 +8,7 @@ from tkinter import messagebox
 import customtkinter as ctk
 
 from backend import Backend
+from seed_exemplos import garantir_dados_exemplo
 from view import theme
 from view.login_view import LoginView
 from view.main_window import MainWindow
@@ -30,6 +31,12 @@ class App(ctk.CTk):
             messagebox.showerror("Erro ao iniciar", f"Falha ao abrir o banco:\n{exc}")
             self.destroy()
             raise
+
+        # Dados de exemplo são acessórios: uma falha aqui não deve impedir o login.
+        try:
+            garantir_dados_exemplo(self.backend)  # sistema nunca começa vazio
+        except Exception as exc:  # pragma: no cover
+            print(f"[aviso] não foi possível semear dados de exemplo: {exc}")
 
         self._tela = None
         self.protocol("WM_DELETE_WINDOW", self._encerrar)

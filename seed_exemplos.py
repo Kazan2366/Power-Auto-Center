@@ -4,6 +4,8 @@ Uso: python seed_exemplos.py
 Respeita as dependências: marcas/modelos → veículos · categorias → peças.
 Registros já existentes (CPF/chassi/username/etc. duplicados) são ignorados.
 """
+import contextlib
+import io
 import sqlite3
 
 from backend import Backend
@@ -108,15 +110,8 @@ def seed(b: Backend):
                 b.funcionarios.cadastrar(n, cargo=ca, cpf=c, telefone=t, email=e,
                                          salario=s, data_admissao=d))
 
-    # --- Usuários (além dos 3 usuários-semente) ---
-    print("Usuários:")
-    usuarios_def = [
-        ("operador.cadastro", "senha123", "cadastro"),
-        ("operador.vendas", "senha123", "vendas"),
-        ("operador.admin", "senha123", "admin"),
-    ]
-    for user, senha, role in usuarios_def:
-        _tentar(user, lambda u=user, s=senha, r=role: b.usuarios.cadastrar(u, s, r))
+    # --- Usuários: garantidos por seed_users() em toda conexão (database/connection.py).
+    #     Não recriamos aqui para evitar duplicar a definição dos operador.*.
 
     # --- Estoque (UPSERT por produto: define a quantidade) ---
     print("Estoque:")
@@ -171,6 +166,29 @@ def seed(b: Backend):
         for (servico, mao, peca), cli, vc in zip(os_def, clientes, veic_clientes):
             _tentar(servico, lambda c=cli["id"], v=vc["id"], s=servico, m=mao, p=peca:
                     b.ordens_servico.cadastrar(c, v, s, m, p))
+
+
+def _banco_sem_exemplos(b: Backend) -> bool:
+    """True quando ainda não há dados de demonstração (só os usuários-semente)."""
+    return not (b.marcas.listar() or b.clientes.listar()
+                or b.funcionarios.listar() or b.veiculos.listar())
+
+
+def garantir_dados_exemplo(b: Backend, verbose: bool = False) -> bool:
+    """Semeia exemplos na 1ª execução (banco vazio); idempotente nas demais.
+
+    Chamado pelos pontos de entrada da aplicação (view/app.py e main.py) para
+    que o sistema nunca comece vazio. Silencioso por padrão (verbose=False) para
+    não poluir o stdout quando a app é aberta pela GUI. Retorna True se semeou.
+    """
+    if not _banco_sem_exemplos(b):
+        return False
+    if verbose:
+        seed(b)
+    else:
+        with contextlib.redirect_stdout(io.StringIO()):
+            seed(b)
+    return True
 
 
 def main():
