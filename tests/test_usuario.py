@@ -36,3 +36,18 @@ def test_campos_obrigatorios(conn):
         ctrl.cadastrar("", "y", "vendas")
     with pytest.raises(ValueError):
         ctrl.cadastrar("x", "", "vendas")
+
+
+def test_username_duplicado_no_cadastro(conn):
+    ctrl = UsuarioController(conn)
+    ctrl.cadastrar("repetido", "senha123", "vendas")
+    with pytest.raises(ValueError, match="Já existe um usuário"):
+        ctrl.cadastrar("repetido", "outrasenha", "cadastro")
+
+
+def test_username_duplicado_na_atualizacao(conn):
+    ctrl = UsuarioController(conn)
+    ctrl.cadastrar("alfa", "senha123", "vendas")
+    uid = ctrl.cadastrar("beta", "senha123", "cadastro")
+    with pytest.raises(ValueError, match="Já existe um usuário"):
+        ctrl.atualizar(uid, "alfa", "senha123", "cadastro")
