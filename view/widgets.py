@@ -10,16 +10,20 @@ class DataTable(ctk.CTkFrame):
 
     def __init__(self, master, colunas, on_select=None, **kwargs):
         super().__init__(master, fg_color=theme.COR_CARD, corner_radius=10, **kwargs)
-        self.colunas = colunas  # list[(key, label, width)]
+        self.colunas = colunas  # list[(key, label, width[, anchor])]
         self.on_select = on_select
 
         ids = [c[0] for c in colunas]
         self.tree = ttk.Treeview(
             self, columns=ids, show="headings", style="Conc.Treeview", selectmode="browse"
         )
-        for key, label, largura in colunas:
-            self.tree.heading(key, text=label)
-            self.tree.column(key, width=largura, anchor="w", stretch=True)
+        for coluna in colunas:
+            key, label, largura = coluna[0], coluna[1], coluna[2]
+            # Âncora opcional (4º item): alinha cabeçalho E dado juntos.
+            # Sem ela, mantém o comportamento atual (dado à esquerda, cabeçalho centralizado).
+            anchor = coluna[3] if len(coluna) > 3 else "w"
+            self.tree.heading(key, text=label, anchor=anchor)
+            self.tree.column(key, width=largura, anchor=anchor, stretch=True)
 
         vsb = ctk.CTkScrollbar(
             self, orientation="vertical", command=self.tree.yview,

@@ -73,11 +73,27 @@ class RelatorioService:
             ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             caminho = self.dest_dir / f"{nome}-{ts}.csv"
         caminho = Path(caminho)
-        with open(caminho, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=rel["headers"])
-            writer.writeheader()
-            writer.writerows(rel["linhas"])
+        # Excel pt-BR usa ';' como separador de listas e ',' como decimal; o BOM
+        # (utf-8-sig) garante que os acentos abram corretamente.
+        with open(caminho, "w", newline="", encoding="utf-8-sig") as f:
+            writer = csv.writer(f, delimiter=";")
+            writer.writerow(rel["headers"])
+            for linha in rel["linhas"]:
+                writer.writerow([self._fmt_csv(linha.get(h)) for h in rel["headers"]])
         return str(caminho)
+
+    @staticmethod
+    def _fmt_csv(valor):
+        if valor is None:
+            return ""
+        if isinstance(valor, float):
+            return str(valor).replace(".", ",")
+        # CPF, telefone etc. são strings de dígitos: força texto no Excel
+        # (="...") p/ evitar notação científica e preservar zeros à esquerda.
+        # `id` e demais inteiros chegam como int e seguem como número.
+        if isinstance(valor, str) and valor.isdigit():
+            return f'="{valor}"'
+        return valor
 
     def formatar_console(self, nome) -> str:
         rel = self.gerar(nome)
