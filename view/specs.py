@@ -10,7 +10,9 @@ def _fonte_marcas(b):
     return [(m["id"], m["nome"]) for m in b.marcas.listar()]
 
 
-def _fonte_modelos(b):
+def _fonte_modelos(b, marca_id=None):
+    if marca_id:
+        return [(m["id"], m["nome"]) for m in b.marca.listar_por_(marca_id)]
     return [(m["id"], m["nome"]) for m in b.modelos.listar()]
 
 
@@ -125,8 +127,7 @@ def construir_specs():
                         ("cor", "Cor", 90), ("preco", "Preço", 100)],
             "campos": [
                 {"key": "marca_id", "label": "Marca", "tipo": "select", "fonte": _fonte_marcas},
-                {"key": "modelo_id", "label": "Modelo", "tipo": "select",
-                 "fonte": _fonte_modelos, "opcional": True},
+                {"key": "modelo_id", "label": "Modelo", "tipo": "select","fonte": _fonte_modelos,"depende_de": "marca_id","opcional": True},
                 {"key": "chassi", "label": "Chassi"},
                 {"key": "ano_fabricacao", "label": "Ano de fabricação", "tipo": "int"},
                 {"key": "cor", "label": "Cor"},
