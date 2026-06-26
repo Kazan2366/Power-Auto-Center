@@ -37,13 +37,14 @@ class Veiculo:
         )
         self.connection.commit()
 
-    def buscar_modelos_por_marca(self,marca_id):
+    def buscar_modelos_por_marca(self, marca_id):
         cur = self.connection.cursor()
-        cur.execute
-        ('SELECT m.id, m.nome'
-         'FROM modelos m'
-         'WHERE m.marca_id = ?' 
-         'ORDER BY n.nome',(marca_id,)
+        cur.execute(
+            "SELECT m.id, m.nome "
+            "FROM modelos m "
+            "WHERE m.marca_id = ? "
+            "ORDER BY m.nome",
+            (marca_id,),
         )
         return cur.fetchall()
     

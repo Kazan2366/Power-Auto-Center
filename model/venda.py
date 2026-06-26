@@ -1,7 +1,7 @@
 class Venda:
     # tipo_produto -> (tabela de estoque, coluna-chave)
     _ESTOQUE_REF = {
-        "veiculo": ("estoque_veiculos", "veiculo_id"),
+        "veiculo": ("estoque_veiculos", "modelo_id"),
         "peca": ("estoque_pecas", "peca_id"),
     }
 

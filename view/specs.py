@@ -10,9 +10,14 @@ def _fonte_marcas(b):
     return [(m["id"], m["nome"]) for m in b.marcas.listar()]
 
 
+def _fonte_marcas_nome(b):
+    # Para colunas que armazenam o nome da marca (texto), não o id.
+    return [(m["nome"], m["nome"]) for m in b.marcas.listar()]
+
+
 def _fonte_modelos(b, marca_id=None):
     if marca_id:
-        return [(m["id"], m["nome"]) for m in b.marca.listar_por_(marca_id)]
+        return [(m["id"], m["nome"]) for m in b.modelos.listar_por_marca(marca_id)]
     return [(m["id"], m["nome"]) for m in b.modelos.listar()]
 
 
@@ -101,7 +106,7 @@ def construir_specs():
                 {"key": "nome", "label": "Nome"},
                 {"key": "numero_serie", "label": "Número de série"},
                 {"key": "marca_id", "label": "Marca", "tipo": "select",
-                 "fonte": _fonte_marcas, "opcional": True},
+                 "fonte": _fonte_marcas},
             ],
             "listar": lambda c: c.listar(),
             "criar": lambda c, v: c.cadastrar(v["nome"], v["numero_serie"], marca_id=v["marca_id"]),
@@ -127,7 +132,7 @@ def construir_specs():
                         ("cor", "Cor", 90), ("preco", "Preço", 100)],
             "campos": [
                 {"key": "marca_id", "label": "Marca", "tipo": "select", "fonte": _fonte_marcas},
-                {"key": "modelo_id", "label": "Modelo", "tipo": "select","fonte": _fonte_modelos,"depende_de": "marca_id","opcional": True},
+                {"key": "modelo_id", "label": "Modelo", "tipo": "select", "fonte": _fonte_modelos, "depende_de": "marca_id"},
                 {"key": "chassi", "label": "Chassi"},
                 {"key": "ano_fabricacao", "label": "Ano de fabricação", "tipo": "int"},
                 {"key": "cor", "label": "Cor"},
@@ -146,7 +151,7 @@ def construir_specs():
                         ("placa", "Placa", 110), ("ano", "Ano", 80)],
             "campos": [
                 {"key": "cliente_id", "label": "Cliente", "tipo": "select", "fonte": _fonte_clientes},
-                {"key": "marca", "label": "Marca"},
+                {"key": "marca", "label": "Marca", "tipo": "select", "fonte": _fonte_marcas_nome},
                 {"key": "placa", "label": "Placa"},
                 {"key": "ano", "label": "Ano", "tipo": "int"},
             ],
@@ -162,7 +167,7 @@ def construir_specs():
             "campos": [
                 {"key": "nome", "label": "Nome"},
                 {"key": "categoria_id", "label": "Categoria", "tipo": "select",
-                 "fonte": _fonte_categorias, "opcional": True},
+                 "fonte": _fonte_categorias},
                 {"key": "preco", "label": "Preço", "tipo": "float"},
             ],
             "listar": lambda c: c.listar(),

@@ -95,8 +95,12 @@ class VendasView(ctk.CTkFrame):
     def _carregar_produtos(self):
         tipo = self.combo_tipo.get()
         if tipo == "veiculo":
-            itens = [(v["id"], f'{v.get("marca_nome") or "?"} — {v["chassi"]}', v.get("preco") or 0)
-                     for v in self.backend.veiculos.listar()]
+            # Estoque é por modelo; preço representativo = 1º veículo do catálogo do modelo.
+            precos = {}
+            for v in self.backend.veiculos.listar():
+                precos.setdefault(v.get("modelo_id"), v.get("preco") or 0)
+            itens = [(m["id"], f'{m.get("marca_nome") or "?"} — {m["nome"]}', precos.get(m["id"], 0))
+                     for m in self.backend.modelos.listar()]
         else:
             itens = [(p["id"], p["nome"], p.get("preco") or 0) for p in self.backend.pecas.listar()]
         self._produtos = {rotulo: (pid, preco) for pid, rotulo, preco in itens}

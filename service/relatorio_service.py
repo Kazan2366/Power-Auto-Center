@@ -33,8 +33,9 @@ RELATORIOS = {
         "LEFT JOIN categorias_peca c ON c.id = p.categoria_id ORDER BY p.id"
     ),
     "estoque_veiculos": (
-        "SELECT ev.veiculo_id, v.marca, v.chassi, ev.quantidade FROM estoque_veiculos ev "
-        "JOIN veiculos v ON v.id = ev.veiculo_id ORDER BY ev.veiculo_id"
+        "SELECT ev.modelo_id, mc.nome AS marca, m.nome AS modelo, ev.quantidade "
+        "FROM estoque_veiculos ev JOIN modelos m ON m.id = ev.modelo_id "
+        "LEFT JOIN marcas mc ON mc.id = m.marca_id ORDER BY ev.modelo_id"
     ),
     "estoque_pecas": (
         "SELECT ep.peca_id, p.nome, ep.quantidade FROM estoque_pecas ep "

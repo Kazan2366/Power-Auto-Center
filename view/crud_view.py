@@ -93,23 +93,48 @@ class CrudView(ctk.CTkFrame):
                           command=lambda f=fn: self._acao_extra(f)).pack(fill="x", pady=4)
 
     def _criar_select(self, painel, campo):
-        combo = ctk.CTkComboBox(painel, height=36, values=["—"], state="readonly")
+        combo = ctk.CTkComboBox(
+            painel, height=36, values=["—"], state="readonly",
+            command=lambda _=None, k=campo["key"]: self._ao_mudar_select(k),
+        )
         combo.pack(fill="x", padx=14)
         return combo
 
     def _atualizar_selects(self):
         """Recarrega as opções dos campos do tipo ``select`` a partir da fonte."""
         for campo in self.spec["campos"]:
-            if campo.get("tipo") != "select":
-                continue
-            opcional = campo.get("opcional", False)
-            mapa = {}
-            if opcional:
-                mapa["—"] = None
-            for ident, rotulo in campo["fonte"](self.backend):
-                mapa[rotulo] = ident
-            self._selects[campo["key"]] = mapa
-            self._campos[campo["key"]].configure(values=list(mapa.keys()) or ["—"])
+            if campo.get("tipo") == "select":
+                self._popular_select(campo)
+
+    def _popular_select(self, campo):
+        """Preenche um único combo, aplicando o filtro de ``depende_de`` se houver."""
+        mapa = {}
+        if campo.get("opcional", False):
+            mapa["—"] = None
+        dep = campo.get("depende_de")
+        if dep:
+            dep_id = self._selects.get(dep, {}).get(self._campos[dep].get())
+            itens = campo["fonte"](self.backend, dep_id)
+        else:
+            itens = campo["fonte"](self.backend)
+        for ident, rotulo in itens:
+            mapa[rotulo] = ident
+        self._selects[campo["key"]] = mapa
+        self._campos[campo["key"]].configure(values=list(mapa.keys()) or ["—"])
+
+    def _repopular_dependentes(self, key):
+        """Recarrega os combos que dependem de ``key`` (mantém o valor que será setado depois)."""
+        for campo in self.spec["campos"]:
+            if campo.get("tipo") == "select" and campo.get("depende_de") == key:
+                self._popular_select(campo)
+
+    def _ao_mudar_select(self, key):
+        """Disparado pelo usuário: recarrega e reseta a seleção dos combos dependentes."""
+        for campo in self.spec["campos"]:
+            if campo.get("tipo") == "select" and campo.get("depende_de") == key:
+                self._popular_select(campo)
+                mapa = self._selects.get(campo["key"], {})
+                self._campos[campo["key"]].set(next(iter(mapa), "—"))
 
     # ---- Dados ---------------------------------------------------------
     def recarregar(self):
@@ -136,6 +161,7 @@ class CrudView(ctk.CTkFrame):
                 mapa = self._selects.get(key, {})
                 rotulo = next((r for r, i in mapa.items() if i == valor), None)
                 widget.set(rotulo or next(iter(mapa), "—"))
+                self._repopular_dependentes(key)
             else:
                 widget.delete(0, "end")
                 if valor is not None:
@@ -157,6 +183,7 @@ class CrudView(ctk.CTkFrame):
             if campo.get("tipo") == "select":
                 mapa = self._selects.get(campo["key"], {})
                 widget.set(next(iter(mapa), "—"))
+                self._repopular_dependentes(campo["key"])
             else:
                 widget.delete(0, "end")
 
@@ -192,11 +219,28 @@ class CrudView(ctk.CTkFrame):
             return
         self._persistir(modo="atualizar")
 
+    def _validar_obrigatorios(self, valores):
+        """Retorna os rótulos dos campos obrigatórios que ficaram sem preenchimento."""
+        faltando = []
+        for campo in self.spec["campos"]:
+            if campo.get("opcional", False):
+                continue
+            if valores.get(campo["key"]) is None:
+                faltando.append(campo["label"])
+        return faltando
+
     def _persistir(self, modo):
         try:
             valores = self._coletar_valores()
         except ValueError:
             messagebox.showwarning("Dados inválidos", "Verifique os campos numéricos.")
+            return
+        faltando = self._validar_obrigatorios(valores)
+        if faltando:
+            messagebox.showwarning(
+                "Campos obrigatórios",
+                "Preencha todos os campos:\n- " + "\n- ".join(faltando),
+            )
             return
         try:
             if modo == "criar":

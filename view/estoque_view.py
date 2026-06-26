@@ -21,7 +21,7 @@ class EstoqueView(ctk.CTkFrame):
 
         self.tabela_v = self._montar_aba(
             self.tabs.tab("Veículos"), "veículo",
-            [("veiculo_id", "ID", 60), ("marca", "Marca", 140), ("chassi", "Chassi", 200),
+            [("modelo_id", "ID", 60), ("marca", "Marca", 140), ("modelo", "Modelo", 200),
              ("quantidade", "Qtd.", 80)],
             self._fonte_veiculos, lambda pid, q: self.backend.estoque.definir_veiculo(pid, q),
             self.backend.estoque.listar_veiculos)
@@ -75,8 +75,8 @@ class EstoqueView(ctk.CTkFrame):
         return combo
 
     def _fonte_veiculos(self):
-        return [(v["id"], f'{v.get("marca_nome") or "?"} — {v["chassi"]}')
-                for v in self.backend.veiculos.listar()]
+        return [(m["id"], f'{m.get("marca_nome") or "?"} — {m["nome"]}')
+                for m in self.backend.modelos.listar()]
 
     def _fonte_pecas(self):
         return [(p["id"], p["nome"]) for p in self.backend.pecas.listar()]

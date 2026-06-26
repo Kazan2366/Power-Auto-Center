@@ -68,9 +68,9 @@ CREATE TABLE IF NOT EXISTS veiculo_cliente (
     FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS estoque_veiculos (
-    veiculo_id INTEGER PRIMARY KEY,
+    modelo_id INTEGER PRIMARY KEY,
     quantidade INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (veiculo_id) REFERENCES veiculos(id) ON DELETE CASCADE
+    FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS estoque_pecas (
     peca_id INTEGER PRIMARY KEY,

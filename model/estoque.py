@@ -2,12 +2,12 @@ class Estoque:
     def __init__(self, connection):
         self.connection = connection
 
-    def definir_veiculo(self, veiculo_id, quantidade):
+    def definir_veiculo(self, modelo_id, quantidade):
         cur = self.connection.cursor()
         cur.execute(
-            "INSERT INTO estoque_veiculos (veiculo_id, quantidade) VALUES (?, ?) "
-            "ON CONFLICT(veiculo_id) DO UPDATE SET quantidade = excluded.quantidade",
-            (veiculo_id, quantidade),
+            "INSERT INTO estoque_veiculos (modelo_id, quantidade) VALUES (?, ?) "
+            "ON CONFLICT(modelo_id) DO UPDATE SET quantidade = excluded.quantidade",
+            (modelo_id, quantidade),
         )
         self.connection.commit()
 
@@ -20,9 +20,9 @@ class Estoque:
         )
         self.connection.commit()
 
-    def buscar_veiculo(self, veiculo_id):
+    def buscar_veiculo(self, modelo_id):
         cur = self.connection.cursor()
-        cur.execute("SELECT * FROM estoque_veiculos WHERE veiculo_id = ?", (veiculo_id,))
+        cur.execute("SELECT * FROM estoque_veiculos WHERE modelo_id = ?", (modelo_id,))
         return cur.fetchone()
 
     def buscar_peca(self, peca_id):
@@ -33,10 +33,10 @@ class Estoque:
     def listar_veiculos(self):
         cur = self.connection.cursor()
         cur.execute(
-            "SELECT ev.veiculo_id, ev.quantidade, mc.nome AS marca, v.chassi "
-            "FROM estoque_veiculos ev JOIN veiculos v ON v.id = ev.veiculo_id "
-            "LEFT JOIN marcas mc ON mc.id = v.marca_id "
-            "ORDER BY ev.veiculo_id"
+            "SELECT ev.modelo_id, ev.quantidade, mc.nome AS marca, m.nome AS modelo "
+            "FROM estoque_veiculos ev JOIN modelos m ON m.id = ev.modelo_id "
+            "LEFT JOIN marcas mc ON mc.id = m.marca_id "
+            "ORDER BY ev.modelo_id"
         )
         return cur.fetchall()
 

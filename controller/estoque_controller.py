@@ -9,16 +9,16 @@ class EstoqueController:
         if quantidade is None or quantidade < 0:
             raise ValueError("Quantidade não pode ser negativa.")
 
-    def definir_veiculo(self, veiculo_id, quantidade):
+    def definir_veiculo(self, modelo_id, quantidade):
         self._validar_qtd(quantidade)
-        self.model.definir_veiculo(veiculo_id, quantidade)
+        self.model.definir_veiculo(modelo_id, quantidade)
 
     def definir_peca(self, peca_id, quantidade):
         self._validar_qtd(quantidade)
         self.model.definir_peca(peca_id, quantidade)
 
-    def buscar_veiculo(self, veiculo_id):
-        row = self.model.buscar_veiculo(veiculo_id)
+    def buscar_veiculo(self, modelo_id):
+        row = self.model.buscar_veiculo(modelo_id)
         return dict(row) if row else None
 
     def buscar_peca(self, peca_id):

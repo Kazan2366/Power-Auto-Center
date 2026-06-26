@@ -13,6 +13,9 @@ class ModeloController:
     def listar(self):
         return [dict(r) for r in self.model.listar()]
 
+    def listar_por_marca(self, marca_id):
+        return [dict(r) for r in self.model.listar_por_marca(marca_id)]
+
     def buscar(self, modelo_id):
         row = self.model.buscar(modelo_id)
         return dict(row) if row else None

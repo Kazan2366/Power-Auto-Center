@@ -115,10 +115,10 @@ def seed(b: Backend):
 
     # --- Estoque (UPSERT por produto: define a quantidade) ---
     print("Estoque:")
-    veiculos = b.veiculos.listar()
+    modelos = b.modelos.listar()
     pecas = b.pecas.listar()
-    for qtd, v in zip((4, 7, 2), veiculos):
-        _tentar(f"veiculo {v['id']}", lambda i=v["id"], q=qtd: b.estoque.definir_veiculo(i, q))
+    for qtd, m in zip((4, 7, 2), modelos):
+        _tentar(f"modelo {m['id']}", lambda i=m["id"], q=qtd: b.estoque.definir_veiculo(i, q))
     for qtd, p in zip((50, 80, 30), pecas):
         _tentar(f"peca {p['id']}", lambda i=p["id"], q=qtd: b.estoque.definir_peca(i, q))
 

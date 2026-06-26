@@ -70,9 +70,9 @@ CREATE TABLE IF NOT EXISTS veiculo_cliente (
     FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS estoque_veiculos (
-    veiculo_id INTEGER PRIMARY KEY,
+    modelo_id INTEGER PRIMARY KEY,
     quantidade INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (veiculo_id) REFERENCES veiculos(id) ON DELETE CASCADE
+    FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS estoque_pecas (
     peca_id INTEGER PRIMARY KEY,
@@ -119,6 +119,44 @@ DEFAULT_USERS = [
 def create_schema(conn):
     """Cria todas as tabelas (idempotente)."""
     conn.executescript(SCHEMA_SQL)
+    _migrar_estoque_para_modelo(conn)
+
+
+def _migrar_estoque_para_modelo(conn):
+    """Migra ``estoque_veiculos`` do esquema antigo (veiculo_id) para o novo (modelo_id).
+
+    Agrega as quantidades por modelo e reaponta os itens de venda de veículo
+    (``venda_itens.produto_id``) de veiculo_id para modelo_id. Idempotente:
+    não faz nada se a tabela já estiver no formato novo.
+    """
+    cur = conn.cursor()
+    colunas = [r["name"] for r in cur.execute("PRAGMA table_info(estoque_veiculos)").fetchall()]
+    if "veiculo_id" not in colunas:
+        return  # já migrado (ou banco novo)
+
+    cur.executescript(
+        "CREATE TABLE estoque_veiculos_new ("
+        "    modelo_id INTEGER PRIMARY KEY,"
+        "    quantidade INTEGER NOT NULL DEFAULT 0,"
+        "    FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE CASCADE"
+        ");"
+    )
+    cur.execute(
+        "INSERT INTO estoque_veiculos_new (modelo_id, quantidade) "
+        "SELECT v.modelo_id, SUM(ev.quantidade) FROM estoque_veiculos ev "
+        "JOIN veiculos v ON v.id = ev.veiculo_id "
+        "WHERE v.modelo_id IS NOT NULL GROUP BY v.modelo_id"
+    )
+    cur.execute(
+        "UPDATE venda_itens SET produto_id = "
+        "COALESCE((SELECT modelo_id FROM veiculos WHERE id = venda_itens.produto_id), produto_id) "
+        "WHERE tipo_produto = 'veiculo'"
+    )
+    cur.executescript(
+        "DROP TABLE estoque_veiculos;"
+        "ALTER TABLE estoque_veiculos_new RENAME TO estoque_veiculos;"
+    )
+    conn.commit()
 
 
 def seed_users(conn):
