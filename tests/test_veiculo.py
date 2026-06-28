@@ -8,7 +8,7 @@ def test_crud_veiculo_normalizado(conn):
     marca_id = MarcaController(conn).cadastrar("Fiat")
     ctrl = VeiculoController(conn)
 
-    vid = ctrl.cadastrar(marca_id, None, "CHS-001", 2022, "Preto", 50000.0)
+    vid = ctrl.cadastrar(marca_id, None, "9BWZZZ377VT004251", 2022, "Preto", 50000.0)
     assert isinstance(vid, int)
 
     # listar() resolve o nome da marca via JOIN
@@ -17,7 +17,7 @@ def test_crud_veiculo_normalizado(conn):
     assert veiculo["marca_nome"] == "Fiat"
 
     nova_marca = MarcaController(conn).cadastrar("Volkswagen")
-    ctrl.atualizar(vid, nova_marca, None, "CHS-001", 2022, "Branco", 52000.0)
+    ctrl.atualizar(vid, nova_marca, None, "9BWZZZ377VT004251", 2022, "Branco", 52000.0)
     assert ctrl.buscar(vid)["marca_id"] == nova_marca
 
     ctrl.excluir(vid)
@@ -27,3 +27,17 @@ def test_crud_veiculo_normalizado(conn):
 def test_marca_obrigatoria(conn):
     with pytest.raises(ValueError):
         VeiculoController(conn).cadastrar(None, None, "X", 2020, "Azul", 1000.0)
+
+
+def test_chassi_invalido(conn):
+    marca_id = MarcaController(conn).cadastrar("Fiat")
+    with pytest.raises(ValueError, match="Chassi deve conter 17"):
+        VeiculoController(conn).cadastrar(marca_id, None, "CHS-001", 2020, "Azul", 1000.0)
+
+
+def test_chassi_duplicado_amigavel(conn):
+    marca_id = MarcaController(conn).cadastrar("Fiat")
+    ctrl = VeiculoController(conn)
+    ctrl.cadastrar(marca_id, None, "9BWZZZ377VT004251", 2022, "Preto", 50000.0)
+    with pytest.raises(ValueError, match="chassi"):
+        ctrl.cadastrar(marca_id, None, "9BWZZZ377VT004251", 2023, "Branco", 60000.0)
