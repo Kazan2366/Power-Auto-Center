@@ -1,15 +1,22 @@
 from model.venda import Venda
 
+TIPOS_VENDA = ("veiculo", "peca", "mista")
+TIPOS_PRODUTO = ("veiculo", "peca")
+
 
 class VendaController:
     def __init__(self, connection):
         self.model = Venda(connection)
 
     def registrar_venda(self, tipo, itens):
+        if tipo not in TIPOS_VENDA:
+            raise ValueError(f"Tipo de venda invalido. Use um de: {', '.join(TIPOS_VENDA)}.")
         if not itens:
             raise ValueError("A venda deve ter ao menos um item.")
         total = 0.0
         for i in itens:
+            if i.get("tipo_produto") not in TIPOS_PRODUTO:
+                raise ValueError(f"Tipo de produto invalido. Use um de: {', '.join(TIPOS_PRODUTO)}.")
             if i["quantidade"] <= 0:
                 raise ValueError("Quantidade do item deve ser maior que zero.")
             if i["preco_unitario"] < 0:

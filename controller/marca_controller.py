@@ -1,3 +1,4 @@
+from controller.common import duplicidade_amigavel
 from model.marca import Marca
 
 
@@ -8,7 +9,9 @@ class MarcaController:
     def cadastrar(self, nome):
         if not (nome or "").strip():
             raise ValueError("Nome da marca é obrigatório.")
-        return self.model.criar(nome.strip())
+        nome = nome.strip()
+        with duplicidade_amigavel("nome da marca", nome):
+            return self.model.criar(nome)
 
     def listar(self):
         return [dict(r) for r in self.model.listar()]
@@ -20,7 +23,9 @@ class MarcaController:
     def atualizar(self, marca_id, nome):
         if not (nome or "").strip():
             raise ValueError("Nome da marca é obrigatório.")
-        self.model.atualizar(marca_id, nome.strip())
+        nome = nome.strip()
+        with duplicidade_amigavel("nome da marca", nome):
+            self.model.atualizar(marca_id, nome)
 
     def excluir(self, marca_id):
         self.model.excluir(marca_id)

@@ -35,8 +35,13 @@ class OrdemServico:
 
     def fechar(self, os_id):
         cur = self.connection.cursor()
-        cur.execute("UPDATE ordem_servico SET saida = CURRENT_TIMESTAMP WHERE id = ?", (os_id,))
+        cur.execute(
+            "UPDATE ordem_servico SET saida = CURRENT_TIMESTAMP "
+            "WHERE id = ? AND saida IS NULL",
+            (os_id,),
+        )
         self.connection.commit()
+        return cur.rowcount == 1
 
     def total_abertas(self):
         cur = self.connection.cursor()

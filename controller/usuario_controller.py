@@ -1,18 +1,7 @@
-import sqlite3
-from contextlib import contextmanager
-
+from controller.common import duplicidade_amigavel
 from model.usuario import Usuario
 
 PAPEIS_VALIDOS = ("cadastro", "vendas", "mecanico", "admin")
-
-
-@contextmanager
-def _duplicidade_amigavel(username):
-    """Converte IntegrityError (username único) numa mensagem clara de validação."""
-    try:
-        yield
-    except sqlite3.IntegrityError:
-        raise ValueError(f"Já existe um usuário com o nome '{username}'.") from None
 
 
 class UsuarioController:
@@ -30,7 +19,7 @@ class UsuarioController:
     def cadastrar(self, username, password, role):
         self._validar(username, password, role)
         username = username.strip()
-        with _duplicidade_amigavel(username):
+        with duplicidade_amigavel("usuário", username):
             return self.model.criar(username, password, role)
 
     def listar(self):
@@ -43,7 +32,7 @@ class UsuarioController:
     def atualizar(self, user_id, username, password, role):
         self._validar(username, password, role)
         username = username.strip()
-        with _duplicidade_amigavel(username):
+        with duplicidade_amigavel("usuário", username):
             self.model.atualizar(user_id, username, password, role)
 
     def excluir(self, user_id):

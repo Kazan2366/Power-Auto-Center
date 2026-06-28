@@ -24,6 +24,8 @@ class Venda:
                 if ref is None:
                     continue
                 tabela, coluna = ref
+                # Identificadores vêm somente da allowlist interna _ESTOQUE_REF;
+                # valores de usuário continuam parametrizados com ?.
                 cur.execute(
                     f"SELECT quantidade FROM {tabela} WHERE {coluna} = ?",
                     (i["produto_id"],),
@@ -54,6 +56,7 @@ class Venda:
                 if ref is None:
                     continue
                 tabela, coluna = ref
+                # Identificadores vêm somente da allowlist interna _ESTOQUE_REF.
                 cur.execute(
                     f"UPDATE {tabela} SET quantidade = quantidade - ? WHERE {coluna} = ?",
                     (i["quantidade"], i["produto_id"]),
@@ -99,6 +102,7 @@ class Venda:
                 if ref is None:
                     continue
                 tabela, coluna = ref
+                # Identificadores vêm somente da allowlist interna _ESTOQUE_REF.
                 cur.execute(
                     f"UPDATE {tabela} SET quantidade = quantidade + ? WHERE {coluna} = ?",
                     (item["quantidade"], item["produto_id"]),

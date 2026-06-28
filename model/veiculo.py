@@ -37,17 +37,6 @@ class Veiculo:
         )
         self.connection.commit()
 
-    def buscar_modelos_por_marca(self, marca_id):
-        cur = self.connection.cursor()
-        cur.execute(
-            "SELECT m.id, m.nome "
-            "FROM modelos m "
-            "WHERE m.marca_id = ? "
-            "ORDER BY m.nome",
-            (marca_id,),
-        )
-        return cur.fetchall()
-    
     def excluir(self, veiculo_id):
         cur = self.connection.cursor()
         cur.execute("DELETE FROM veiculos WHERE id = ?", (veiculo_id,))
