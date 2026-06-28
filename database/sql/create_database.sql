@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    role TEXT NOT NULL
+    role TEXT NOT NULL CHECK (role IN ('cadastro','vendas','mecanico','admin'))
 );
 CREATE TABLE IF NOT EXISTS funcionarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS veiculos (
     chassi TEXT UNIQUE,
     ano_fabricacao INTEGER,
     cor TEXT,
-    preco REAL,
+    preco REAL CHECK (preco >= 0),
     FOREIGN KEY (marca_id) REFERENCES marcas(id) ON DELETE SET NULL,
     FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE SET NULL
 );
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS pecas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
     categoria_id INTEGER,
-    preco REAL,
+    preco REAL CHECK (preco >= 0),
     FOREIGN KEY (categoria_id) REFERENCES categorias_peca(id) ON DELETE SET NULL
 );
 CREATE TABLE IF NOT EXISTS veiculo_cliente (
@@ -69,27 +69,27 @@ CREATE TABLE IF NOT EXISTS veiculo_cliente (
 );
 CREATE TABLE IF NOT EXISTS estoque_veiculos (
     modelo_id INTEGER PRIMARY KEY,
-    quantidade INTEGER NOT NULL DEFAULT 0,
+    quantidade INTEGER NOT NULL DEFAULT 0 CHECK (quantidade >= 0),
     FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS estoque_pecas (
     peca_id INTEGER PRIMARY KEY,
-    quantidade INTEGER NOT NULL DEFAULT 0,
+    quantidade INTEGER NOT NULL DEFAULT 0 CHECK (quantidade >= 0),
     FOREIGN KEY (peca_id) REFERENCES pecas(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS vendas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    tipo TEXT NOT NULL,
-    total REAL NOT NULL
+    tipo TEXT NOT NULL CHECK (tipo IN ('veiculo','peca','mista')),
+    total REAL NOT NULL CHECK (total >= 0)
 );
 CREATE TABLE IF NOT EXISTS venda_itens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     venda_id INTEGER NOT NULL,
     produto_id INTEGER NOT NULL,
-    tipo_produto TEXT NOT NULL,
-    quantidade INTEGER NOT NULL,
-    preco_unitario REAL NOT NULL,
+    tipo_produto TEXT NOT NULL CHECK (tipo_produto IN ('veiculo','peca')),
+    quantidade INTEGER NOT NULL CHECK (quantidade > 0),
+    preco_unitario REAL NOT NULL CHECK (preco_unitario >= 0),
     FOREIGN KEY (venda_id) REFERENCES vendas(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS ordem_servico (
@@ -99,8 +99,8 @@ CREATE TABLE IF NOT EXISTS ordem_servico (
     tipo_servico TEXT,
     entrada TIMESTAMP,
     saida TIMESTAMP,
-    valor_mao_de_obra REAL,
-    valor_peca REAL,
+    valor_mao_de_obra REAL CHECK (valor_mao_de_obra >= 0),
+    valor_peca REAL CHECK (valor_peca >= 0),
     FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
     FOREIGN KEY (veiculo_cliente_id) REFERENCES veiculo_cliente(id) ON DELETE SET NULL
 );

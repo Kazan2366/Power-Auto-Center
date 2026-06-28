@@ -44,6 +44,8 @@ from service import (
 
 
 class Backend:
+    """Fachada com conexão SQLite única, para uso na mesma thread."""
+
     def __init__(self, connection=None):
         self.connection = connection or create_connection()
         c = self.connection
