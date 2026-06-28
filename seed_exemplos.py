@@ -1,14 +1,23 @@
-"""Popula o banco com 3 exemplos de cada cadastro (idempotente por unicidade).
-
-Uso: python seed_exemplos.py
-Respeita as dependências: marcas/modelos → veículos · categorias → peças.
-Registros já existentes (CPF/chassi/username/etc. duplicados) são ignorados.
-"""
+"""Popula o banco com dados de demonstração realistas e idempotentes."""
 import contextlib
 import io
 import sqlite3
 
 from backend import Backend
+from database.dados_exemplo import (
+    CATEGORIAS,
+    CLIENTES,
+    ESTOQUE_PECAS,
+    ESTOQUE_VEICULOS,
+    FUNCIONARIOS,
+    MARCAS,
+    MODELOS,
+    ORDENS_SERVICO,
+    PECAS,
+    VEICULOS,
+    VEICULOS_CLIENTE,
+    VENDAS,
+)
 
 
 def _tentar(rotulo, fn):
@@ -18,7 +27,10 @@ def _tentar(rotulo, fn):
     except sqlite3.IntegrityError:
         print(f"  · {rotulo}: já existe (ignorado)")
     except ValueError as exc:
-        print(f"  · {rotulo}: inválido ({exc})")
+        if str(exc).startswith("Já existe"):
+            print(f"  · {rotulo}: já existe (ignorado)")
+        else:
+            print(f"  · {rotulo}: inválido ({exc})")
     return None
 
 
@@ -26,146 +38,161 @@ def _id_por_nome(lista, nome, chave="nome"):
     return next((r["id"] for r in lista if r.get(chave) == nome), None)
 
 
+def _por_nome(lista, chave="nome"):
+    return {r[chave]: r for r in lista}
+
+
+def _itens_venda(itens_def, modelos_por_nome, pecas_por_nome):
+    itens = []
+    for item in itens_def:
+        if item["tipo_produto"] == "veiculo":
+            produto = modelos_por_nome.get(item["produto"])
+        else:
+            produto = pecas_por_nome.get(item["produto"])
+        if produto is None:
+            raise ValueError(f"Produto não encontrado no seed: {item['produto']}")
+        itens.append({
+            "produto_id": produto["id"],
+            "tipo_produto": item["tipo_produto"],
+            "quantidade": item["quantidade"],
+            "preco_unitario": item["preco_unitario"],
+        })
+    return itens
+
+
 def seed(b: Backend):
-    # --- Marcas ---
     print("Marcas:")
-    for nome in ("Fiat", "Volkswagen", "Toyota"):
+    for nome in MARCAS:
         _tentar(nome, lambda n=nome: b.marcas.cadastrar(n))
     marcas = b.marcas.listar()
 
-    # --- Modelos (apoio para veículos) ---
     print("Modelos:")
-    modelos_def = [
-        ("Uno", "SN-0001", "Fiat"),
-        ("Gol", "SN-0002", "Volkswagen"),
-        ("Corolla", "SN-0003", "Toyota"),
-    ]
-    for nome, serie, marca in modelos_def:
-        mid = _id_por_nome(marcas, marca)
-        _tentar(nome, lambda n=nome, s=serie, m=mid: b.modelos.cadastrar(n, s, marca_id=m))
+    for item in MODELOS:
+        marca_id = _id_por_nome(marcas, item["marca"])
+        _tentar(
+            item["nome"],
+            lambda i=item, m=marca_id: b.modelos.cadastrar(i["nome"], i["numero_serie"], marca_id=m),
+        )
     modelos = b.modelos.listar()
 
-    # --- Categorias (sem unicidade no schema → evita duplicar por nome) ---
     print("Categorias:")
-    categorias_def = [
-        ("Freios", "Pastilhas, discos e fluidos"),
-        ("Motor", "Óleos, filtros e correias"),
-        ("Suspensão", "Amortecedores e molas"),
-    ]
     categorias = b.categorias.listar()
-    for nome, desc in categorias_def:
-        if _id_por_nome(categorias, nome):
-            print(f"  · {nome}: já existe (ignorado)")
+    for item in CATEGORIAS:
+        if _id_por_nome(categorias, item["nome"]):
+            print(f"  · {item['nome']}: já existe (ignorado)")
             continue
-        _tentar(nome, lambda n=nome, d=desc: b.categorias.cadastrar(n, d))
+        _tentar(item["nome"], lambda i=item: b.categorias.cadastrar(i["nome"], i["descricao"]))
     categorias = b.categorias.listar()
 
-    # --- Peças (sem unicidade no schema → evita duplicar por nome) ---
     print("Peças:")
-    pecas_def = [
-        ("Pastilha de freio", "Freios", 120.0),
-        ("Filtro de óleo", "Motor", 45.0),
-        ("Amortecedor dianteiro", "Suspensão", 320.0),
-    ]
-    pecas_existentes = b.pecas.listar()
-    for nome, cat, preco in pecas_def:
-        if _id_por_nome(pecas_existentes, nome):
-            print(f"  · {nome}: já existe (ignorado)")
+    pecas = b.pecas.listar()
+    for item in PECAS:
+        if _id_por_nome(pecas, item["nome"]):
+            print(f"  · {item['nome']}: já existe (ignorado)")
             continue
-        cid = _id_por_nome(categorias, cat)
-        _tentar(nome, lambda n=nome, c=cid, p=preco: b.pecas.cadastrar(n, c, p))
+        categoria_id = _id_por_nome(categorias, item["categoria"])
+        _tentar(
+            item["nome"],
+            lambda i=item, c=categoria_id: b.pecas.cadastrar(i["nome"], c, i["preco"]),
+        )
+    pecas = b.pecas.listar()
 
-    # --- Veículos (catálogo) ---
     print("Veículos:")
-    veiculos_def = [
-        ("Fiat", "Uno", "9BWZZZ377VT004251", 2022, "Preto", 65000.0),
-        ("Volkswagen", "Gol", "9BWAB45U7KP123456", 2023, "Branco", 78000.0),
-        ("Toyota", "Corolla", "9BR53ZEC4P9012345", 2024, "Prata", 145000.0),
-    ]
-    for marca, modelo, chassi, ano, cor, preco in veiculos_def:
-        mid = _id_por_nome(marcas, marca)
-        moid = _id_por_nome(modelos, modelo)
-        _tentar(chassi, lambda mi=mid, mo=moid, ch=chassi, a=ano, c=cor, p=preco:
-                b.veiculos.cadastrar(mi, mo, ch, a, c, p))
+    for item in VEICULOS:
+        marca_id = _id_por_nome(marcas, item["marca"])
+        modelo_id = _id_por_nome(modelos, item["modelo"])
+        _tentar(
+            item["chassi"],
+            lambda i=item, ma=marca_id, mo=modelo_id: b.veiculos.cadastrar(
+                ma, mo, i["chassi"], i["ano"], i["cor"], i["preco"]
+            ),
+        )
+    veiculos = b.veiculos.listar()
 
-    # --- Clientes ---
     print("Clientes:")
-    clientes_def = [
-        ("Ana Maria Souza", "11122233344", "11999990001", "ana@email.com"),
-        ("Bruno Carvalho", "22233344455", "11999990002", "bruno@email.com"),
-        ("Carla Mendes", "33344455566", "11999990003", "carla@email.com"),
-    ]
-    for nome, cpf, tel, email in clientes_def:
-        _tentar(nome, lambda n=nome, c=cpf, t=tel, e=email: b.clientes.cadastrar(n, c, t, e))
+    for item in CLIENTES:
+        _tentar(
+            item["nome"],
+            lambda i=item: b.clientes.cadastrar(i["nome"], i["cpf"], i["telefone"], i["email"]),
+        )
+    clientes = b.clientes.listar()
 
-    # --- Funcionários ---
     print("Funcionários:")
-    funcionarios_def = [
-        ("Carlos Pereira", "Mecânico", "44455566677", "11988880001", "carlos@conc.com", 3200.0, "2026-01-10"),
-        ("Daniela Lima", "Vendedora", "55566677788", "11988880002", "daniela@conc.com", 2800.0, "2026-02-15"),
-        ("Eduardo Rocha", "Gerente", "66677788899", "11988880003", "eduardo@conc.com", 6500.0, "2025-11-01"),
-    ]
-    for nome, cargo, cpf, tel, email, sal, adm in funcionarios_def:
-        _tentar(nome, lambda n=nome, ca=cargo, c=cpf, t=tel, e=email, s=sal, d=adm:
-                b.funcionarios.cadastrar(n, cargo=ca, cpf=c, telefone=t, email=e,
-                                         salario=s, data_admissao=d))
+    for item in FUNCIONARIOS:
+        _tentar(
+            item["nome"],
+            lambda i=item: b.funcionarios.cadastrar(
+                i["nome"],
+                cargo=i["cargo"],
+                cpf=i["cpf"],
+                telefone=i["telefone"],
+                email=i["email"],
+                salario=i["salario"],
+                data_admissao=i["data_admissao"],
+            ),
+        )
 
-    # --- Usuários: garantidos por seed_users() em toda conexão (database/connection.py).
-    #     Não recriamos aqui para evitar duplicar a definição dos operador.*.
-
-    # --- Estoque (UPSERT por produto: define a quantidade) ---
     print("Estoque:")
     modelos = b.modelos.listar()
     pecas = b.pecas.listar()
-    for qtd, m in zip((4, 7, 2), modelos):
-        _tentar(f"modelo {m['id']}", lambda i=m["id"], q=qtd: b.estoque.definir_veiculo(i, q))
-    for qtd, p in zip((50, 80, 30), pecas):
-        _tentar(f"peca {p['id']}", lambda i=p["id"], q=qtd: b.estoque.definir_peca(i, q))
+    modelos_por_nome = _por_nome(modelos)
+    pecas_por_nome = _por_nome(pecas)
+    for modelo_nome, quantidade in ESTOQUE_VEICULOS.items():
+        modelo = modelos_por_nome.get(modelo_nome)
+        if modelo:
+            _tentar(f"modelo {modelo_nome}", lambda m=modelo, q=quantidade: b.estoque.definir_veiculo(m["id"], q))
+    for peca_nome, quantidade in ESTOQUE_PECAS.items():
+        peca = pecas_por_nome.get(peca_nome)
+        if peca:
+            _tentar(f"peça {peca_nome}", lambda p=peca, q=quantidade: b.estoque.definir_peca(p["id"], q))
 
-    # --- Veículos de clientes (necessários para Ordens de Serviço) ---
     print("Veículos de clientes:")
     clientes = b.clientes.listar()
-    vc_def = [
-        ("Fiat", "ABC1D23", 2019),
-        ("Volkswagen", "DEF4G56", 2021),
-        ("Toyota", "GHI7J89", 2020),
-    ]
-    for (marca, placa, ano), cli in zip(vc_def, clientes):
-        _tentar(placa, lambda c=cli["id"], m=marca, pl=placa, a=ano:
-                b.veiculos_cliente.cadastrar(c, m, pl, a))
-    veic_clientes = b.veiculos_cliente.listar()
+    clientes_por_nome = _por_nome(clientes)
+    for item in VEICULOS_CLIENTE:
+        cliente = clientes_por_nome.get(item["cliente"])
+        if cliente is None:
+            raise ValueError(f"Cliente não encontrado no seed: {item['cliente']}")
+        _tentar(
+            item["placa"],
+            lambda i=item, c=cliente: b.veiculos_cliente.cadastrar(c["id"], i["marca"], i["placa"], i["ano"]),
+        )
+    veiculos_cliente = b.veiculos_cliente.listar()
 
-    # --- Vendas (sem unicidade: só semeia se ainda não houver vendas) ---
     print("Vendas:")
     if b.vendas.listar():
         print("  · já existem vendas (ignorado)")
     elif veiculos and pecas:
-        vendas_def = [
-            ("veiculo", [{"produto_id": veiculos[0]["id"], "tipo_produto": "veiculo",
-                          "quantidade": 1, "preco_unitario": veiculos[0]["preco"]}]),
-            ("peca", [{"produto_id": pecas[0]["id"], "tipo_produto": "peca",
-                       "quantidade": 4, "preco_unitario": pecas[0]["preco"]}]),
-            ("mista", [{"produto_id": veiculos[1]["id"], "tipo_produto": "veiculo",
-                        "quantidade": 1, "preco_unitario": veiculos[1]["preco"]},
-                       {"produto_id": pecas[1]["id"], "tipo_produto": "peca",
-                        "quantidade": 2, "preco_unitario": pecas[1]["preco"]}]),
-        ]
-        for tipo, itens in vendas_def:
-            _tentar(f"venda {tipo}", lambda t=tipo, it=itens: b.vendas.registrar_venda(t, it))
+        modelos_por_nome = _por_nome(b.modelos.listar())
+        pecas_por_nome = _por_nome(b.pecas.listar())
+        for venda in VENDAS:
+            itens = _itens_venda(venda["itens"], modelos_por_nome, pecas_por_nome)
+            _tentar(
+                f"venda {venda['tipo']}",
+                lambda v=venda, it=itens: b.vendas.registrar_venda(v["tipo"], it),
+            )
 
-    # --- Ordens de serviço (sem unicidade: só semeia se ainda não houver OS) ---
     print("Ordens de serviço:")
     if b.ordens_servico.listar():
         print("  · já existem ordens (ignorado)")
-    elif clientes and veic_clientes:
-        os_def = [
-            ("Revisão completa", 250.0, 180.0),
-            ("Troca de óleo e filtro", 80.0, 90.0),
-            ("Alinhamento e balanceamento", 120.0, 0.0),
-        ]
-        for (servico, mao, peca), cli, vc in zip(os_def, clientes, veic_clientes):
-            _tentar(servico, lambda c=cli["id"], v=vc["id"], s=servico, m=mao, p=peca:
-                    b.ordens_servico.cadastrar(c, v, s, m, p))
+    elif clientes and veiculos_cliente:
+        clientes_por_nome = _por_nome(b.clientes.listar())
+        veiculos_cliente_por_placa = _por_nome(b.veiculos_cliente.listar(), chave="placa")
+        for ordem in ORDENS_SERVICO:
+            cliente = clientes_por_nome.get(ordem["cliente"])
+            veiculo_cliente = veiculos_cliente_por_placa.get(ordem["placa"])
+            if cliente is None or veiculo_cliente is None:
+                raise ValueError(f"OS com referência inválida no seed: {ordem}")
+            _tentar(
+                ordem["servico"],
+                lambda o=ordem, c=cliente, v=veiculo_cliente: b.ordens_servico.cadastrar(
+                    c["id"],
+                    v["id"],
+                    o["servico"],
+                    o["valor_mao_de_obra"],
+                    o["valor_peca"],
+                ),
+            )
 
 
 def _banco_sem_exemplos(b: Backend) -> bool:
@@ -175,12 +202,7 @@ def _banco_sem_exemplos(b: Backend) -> bool:
 
 
 def garantir_dados_exemplo(b: Backend, verbose: bool = False) -> bool:
-    """Semeia exemplos na 1ª execução (banco vazio); idempotente nas demais.
-
-    Chamado pelos pontos de entrada da aplicação (view/app.py e main.py) para
-    que o sistema nunca comece vazio. Silencioso por padrão (verbose=False) para
-    não poluir o stdout quando a app é aberta pela GUI. Retorna True se semeou.
-    """
+    """Semeia exemplos na 1ª execução; idempotente nas demais."""
     if not _banco_sem_exemplos(b):
         return False
     if verbose:
@@ -193,13 +215,15 @@ def garantir_dados_exemplo(b: Backend, verbose: bool = False) -> bool:
 
 def main():
     b = Backend()
-    print("Cadastrando 3 exemplos por funcionalidade...\n")
-    seed(b)
-    print("\nResumo após o seed:")
-    for chave, valor in b.dashboard.resumo().items():
-        print(f"  - {chave}: {valor}")
-    b.fechar()
-    print("\nConcluído.")
+    try:
+        print("Cadastrando exemplos por funcionalidade...\n")
+        seed(b)
+        print("\nResumo após o seed:")
+        for chave, valor in b.dashboard.resumo().items():
+            print(f"  - {chave}: {valor}")
+        print("\nConcluído.")
+    finally:
+        b.fechar()
 
 
 if __name__ == "__main__":
