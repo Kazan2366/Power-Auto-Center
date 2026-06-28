@@ -1,35 +1,23 @@
-"""FinanceiroService — visão financeira derivada de vendas e ordens de serviço.
-
-Entradas (receitas):
-  - Vendas  → soma de `vendas.total`.
-  - Serviços (OS) → soma de `valor_mao_de_obra + valor_peca` por ordem de serviço.
-Saídas (despesas):
-  - Salários → soma de `funcionarios.salario` (folha mensal estimada).
-
-Não há tabela de lançamentos manuais: tudo é calculado a partir dos dados já
-existentes (decisão do handoff — Financeiro a partir de vendas/OS).
-"""
+"""FinanceiroService - visão financeira derivada de vendas e ordens de serviço."""
+from controller.funcionario_controller import FuncionarioController
+from model.venda import Venda
+from service.common import scalar
 
 
 class FinanceiroService:
     def __init__(self, connection):
         self.connection = connection
-
-    def _scalar(self, sql):
-        cur = self.connection.cursor()
-        cur.execute(sql)
-        row = cur.fetchone()
-        return row[0] if row else 0
+        self.venda = Venda(connection)
+        self.funcionarios = FuncionarioController(connection)
 
     def resumo(self) -> dict:
-        receita_vendas = self._scalar("SELECT COALESCE(SUM(total), 0) FROM vendas")
-        receita_servicos = self._scalar(
+        receita_vendas = self.venda.total_vendas()
+        receita_servicos = scalar(
+            self.connection,
             "SELECT COALESCE(SUM(COALESCE(valor_mao_de_obra, 0) + COALESCE(valor_peca, 0)), 0) "
-            "FROM ordem_servico"
+            "FROM ordem_servico",
         )
-        despesa_salarios = self._scalar(
-            "SELECT COALESCE(SUM(salario), 0) FROM funcionarios"
-        )
+        despesa_salarios = self.funcionarios.total_salarios()
         receita_total = receita_vendas + receita_servicos
         return {
             "receita_vendas": receita_vendas,
