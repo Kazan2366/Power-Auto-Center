@@ -10,7 +10,7 @@ import customtkinter as ctk
 from view import theme
 
 # Paleta de séries (cores agradáveis e contrastantes)
-PALETA = ["#2563eb", "#16a34a", "#ea580c", "#7c3aed", "#0891b2", "#dc2626", "#ca8a04"]
+PALETA = theme.PALETA_SERIES
 
 
 def fmt_num(valor):

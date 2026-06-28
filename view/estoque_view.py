@@ -1,10 +1,21 @@
-"""Estoque — define a quantidade de veículos e peças (``backend.estoque``)."""
+"""Estoque - define a quantidade de veículos e peças (``backend.estoque``)."""
+from dataclasses import dataclass, field
 from tkinter import messagebox
 
 import customtkinter as ctk
 
 from view import theme
 from view.widgets import DataTable
+
+
+@dataclass
+class AbaEstoque:
+    combo: ctk.CTkComboBox
+    tabela: DataTable
+    fonte: callable
+    definir: callable
+    listar: callable
+    mapa: dict = field(default_factory=dict)
 
 
 class EstoqueView(ctk.CTkFrame):
@@ -19,17 +30,21 @@ class EstoqueView(ctk.CTkFrame):
         self.tabs.add("Veículos")
         self.tabs.add("Peças")
 
-        self.tabela_v = self._montar_aba(
+        self.aba_veiculos = self._montar_aba(
             self.tabs.tab("Veículos"), "veículo",
             [("modelo_id", "ID", 60), ("marca", "Marca", 140), ("modelo", "Modelo", 200),
              ("quantidade", "Qtd.", 80)],
-            self._fonte_veiculos, lambda pid, q: self.backend.estoque.definir_veiculo(pid, q),
-            self.backend.estoque.listar_veiculos)
-        self.tabela_p = self._montar_aba(
+            self._fonte_veiculos,
+            lambda pid, q: self.backend.estoque.definir_veiculo(pid, q),
+            self.backend.estoque.listar_veiculos,
+        )
+        self.aba_pecas = self._montar_aba(
             self.tabs.tab("Peças"), "peça",
             [("peca_id", "ID", 60), ("nome", "Nome", 240), ("quantidade", "Qtd.", 80)],
-            self._fonte_pecas, lambda pid, q: self.backend.estoque.definir_peca(pid, q),
-            self.backend.estoque.listar_pecas)
+            self._fonte_pecas,
+            lambda pid, q: self.backend.estoque.definir_peca(pid, q),
+            self.backend.estoque.listar_pecas,
+        )
 
         self.recarregar()
 
@@ -45,34 +60,43 @@ class EstoqueView(ctk.CTkFrame):
 
         tabela = DataTable(aba, colunas)
         tabela.pack(fill="both", expand=True)
+        aba_estoque = AbaEstoque(combo, tabela, fonte, definir, listar)
 
         def aplicar():
-            mapa = combo._mapa if hasattr(combo, "_mapa") else {}
-            pid = mapa.get(combo.get())
-            if pid is None:
-                messagebox.showinfo("Atenção", f"Selecione um(a) {rotulo}.")
-                return
-            try:
-                qtd = int(ent_qtd.get().strip() or "0")
-                definir(pid, qtd)
-            except ValueError as exc:
-                messagebox.showwarning("Validação", str(exc) or "Quantidade inválida.")
-                return
-            except Exception as exc:
-                messagebox.showerror("Erro", str(exc))
-                return
-            ent_qtd.delete(0, "end")
-            self.recarregar()
+            self._aplicar_quantidade(aba_estoque, ent_qtd, rotulo)
 
-        ctk.CTkButton(barra, text="Definir quantidade", fg_color=theme.COR_SUCESSO,
-                      hover_color=theme.COR_SUCESSO_HOVER, command=aplicar).pack(
-            side="left", padx=12, pady=10)
+        ent_qtd.bind("<Return>", lambda _e: aplicar())
+        ctk.CTkButton(
+            barra,
+            text="Definir quantidade",
+            fg_color=theme.COR_SUCESSO,
+            hover_color=theme.COR_SUCESSO_HOVER,
+            command=aplicar,
+        ).pack(side="left", padx=12, pady=10)
 
-        # guarda referências para recarga
-        combo._fonte = fonte
-        combo._listar = listar
-        combo._tabela = tabela
-        return combo
+        ent_qtd.focus()
+        return aba_estoque
+
+    def _aplicar_quantidade(self, aba, ent_qtd, rotulo):
+        pid = aba.mapa.get(aba.combo.get())
+        if pid is None:
+            messagebox.showinfo("Atenção", f"Selecione um(a) {rotulo}.")
+            return
+        try:
+            qtd = int(ent_qtd.get().strip() or "0")
+        except ValueError:
+            messagebox.showwarning("Validação", "Quantidade deve ser um número inteiro.")
+            return
+        try:
+            aba.definir(pid, qtd)
+        except ValueError as exc:
+            messagebox.showwarning("Validação", str(exc))
+            return
+        except Exception as exc:
+            messagebox.showerror("Erro", str(exc))
+            return
+        ent_qtd.delete(0, "end")
+        self.recarregar()
 
     def _fonte_veiculos(self):
         return [(m["id"], f'{m.get("marca_nome") or "?"} — {m["nome"]}')
@@ -82,13 +106,12 @@ class EstoqueView(ctk.CTkFrame):
         return [(p["id"], p["nome"]) for p in self.backend.pecas.listar()]
 
     def recarregar(self):
-        for combo in (self.tabela_v, self.tabela_p):
-            mapa = {rotulo: ident for ident, rotulo in combo._fonte()}
-            combo._mapa = mapa
-            combo.configure(values=list(mapa.keys()) or ["—"])
-            if mapa:
-                combo.set(next(iter(mapa)))
+        for aba in (self.aba_veiculos, self.aba_pecas):
+            aba.mapa = {rotulo: ident for ident, rotulo in aba.fonte()}
+            aba.combo.configure(values=list(aba.mapa.keys()) or ["—"])
+            if aba.mapa:
+                aba.combo.set(next(iter(aba.mapa)))
             try:
-                combo._tabela.carregar(combo._listar())
+                aba.tabela.carregar(aba.listar())
             except Exception as exc:  # pragma: no cover
                 messagebox.showerror("Erro", str(exc))

@@ -272,6 +272,7 @@ class CrudView(ctk.CTkFrame):
             messagebox.showerror("Erro ao excluir", str(exc))
             return
         self.recarregar()
+        messagebox.showinfo(self.spec["titulo"], "Registro excluído com sucesso.")
 
     def _acao_extra(self, fn):
         if self._id_atual is None:

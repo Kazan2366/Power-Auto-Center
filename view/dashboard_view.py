@@ -15,10 +15,10 @@ from utils.helpers import format_currency
 
 _VERDE = theme.COR_SUCESSO
 _AZUL = theme.COR_PRIMARIA
-_LARANJA = "#ea580c"
-_ROXO = "#7c3aed"
+_LARANJA = theme.COR_LARANJA
+_ROXO = theme.COR_ROXO
 _VERMELHO = theme.COR_PERIGO
-_CIANO = "#0891b2"
+_CIANO = theme.COR_CIANO
 
 
 class DashboardView(ctk.CTkFrame):
@@ -39,6 +39,8 @@ class DashboardView(ctk.CTkFrame):
 
         self.container = ctk.CTkFrame(self, fg_color="transparent")
         self.container.pack(fill="both", expand=True)
+        self.lbl_status = ctk.CTkLabel(self, text="", text_color=theme.COR_TEXTO_FRACO)
+        self.lbl_status.pack(anchor="w", pady=(6, 0))
         self.recarregar()
 
     def _subtitulo(self):
@@ -63,16 +65,24 @@ class DashboardView(ctk.CTkFrame):
 
     # ---- montagem ------------------------------------------------------
     def recarregar(self):
+        self._set_busy("Carregando dashboard...")
         for w in self.container.winfo_children():
             w.destroy()
-        d = self._coletar()
-        construtor = {
-            "cadastro": self._montar_cadastro,
-            "vendas": self._montar_vendas,
-            "mecanico": self._montar_mecanico,
-        }.get(self.role, self._montar_admin)
-        kpis, graf1, graf2 = construtor(d)
-        self._render(kpis, graf1, graf2)
+        try:
+            d = self._coletar()
+            construtor = {
+                "cadastro": self._montar_cadastro,
+                "vendas": self._montar_vendas,
+                "mecanico": self._montar_mecanico,
+            }.get(self.role, self._montar_admin)
+            kpis, graf1, graf2 = construtor(d)
+            self._render(kpis, graf1, graf2)
+        finally:
+            self._set_busy("")
+
+    def _set_busy(self, text):
+        self.lbl_status.configure(text=text)
+        self.update_idletasks()
 
     def _render(self, kpis, graf1, graf2):
         c = self.container

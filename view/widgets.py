@@ -1,8 +1,43 @@
 """Componentes reutilizáveis da camada de view."""
 import customtkinter as ctk
+from tkinter import messagebox
 from tkinter import ttk
 
 from view import theme
+
+
+def chamar_backend(fn, titulo_erro):
+    try:
+        return fn()
+    except Exception as exc:
+        messagebox.showerror(titulo_erro, str(exc))
+        return None
+
+
+class PageHeader(ctk.CTkFrame):
+    """Cabeçalho reutilizável de página com título, subtítulo e atualização."""
+
+    def __init__(self, master, titulo, subtitulo=None, on_refresh=None, **kwargs):
+        super().__init__(master, fg_color="transparent", **kwargs)
+        col = ctk.CTkFrame(self, fg_color="transparent")
+        col.pack(side="left")
+        ctk.CTkLabel(col, text=titulo, font=theme.fonte_titulo()).pack(anchor="w")
+        if subtitulo:
+            ctk.CTkLabel(
+                col,
+                text=subtitulo,
+                text_color=theme.COR_TEXTO_FRACO,
+                font=theme.fonte_padrao(),
+            ).pack(anchor="w")
+        if on_refresh:
+            ctk.CTkButton(
+                self,
+                text="Atualizar",
+                width=110,
+                fg_color=theme.COR_PAINEL,
+                hover_color=theme.COR_CARD,
+                command=on_refresh,
+            ).pack(side="right")
 
 
 class DataTable(ctk.CTkFrame):

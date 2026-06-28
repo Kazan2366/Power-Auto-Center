@@ -17,18 +17,33 @@ COR_PERIGO = "#dc2626"
 COR_PERIGO_HOVER = "#b91c1c"
 COR_TEXTO = "#e5e7eb"
 COR_TEXTO_FRACO = "#9ca3af"
+COR_TEXTO_INVERTIDO = "#ffffff"
 COR_BORDA = "#374151"
+COR_LARANJA = "#ea580c"
+COR_ROXO = "#7c3aed"
+COR_CIANO = "#0891b2"
+COR_AMARELO = "#ca8a04"
 # Scrollbars (alinhadas ao tema escuro)
 COR_SCROLL = "#3a4150"
 COR_SCROLL_HOVER = "#4b5563"
 
 # Perfil → cor de destaque (apenas estética)
 COR_PERFIL = {
-    "cadastro": "#2563eb",
-    "vendas": "#16a34a",
-    "mecanico": "#ea580c",
-    "admin": "#7c3aed",
+    "cadastro": COR_PRIMARIA,
+    "vendas": COR_SUCESSO,
+    "mecanico": COR_LARANJA,
+    "admin": COR_ROXO,
 }
+
+PALETA_SERIES = [
+    COR_PRIMARIA,
+    COR_SUCESSO,
+    COR_LARANJA,
+    COR_ROXO,
+    COR_CIANO,
+    COR_PERIGO,
+    COR_AMARELO,
+]
 
 
 def aplicar_tema():
@@ -73,7 +88,7 @@ def estilizar_treeview():
     style.map(
         "Conc.Treeview",
         background=[("selected", COR_PRIMARIA)],
-        foreground=[("selected", "#ffffff")],
+        foreground=[("selected", COR_TEXTO_INVERTIDO)],
     )
 
 

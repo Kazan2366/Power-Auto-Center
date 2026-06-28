@@ -132,7 +132,7 @@ def construir_specs():
                         ("cor", "Cor", 90), ("preco", "Preço", 100)],
             "campos": [
                 {"key": "marca_id", "label": "Marca", "tipo": "select", "fonte": _fonte_marcas},
-                {"key": "modelo_id", "label": "Modelo", "tipo": "select", "fonte": _fonte_modelos, "depende_de": "marca_id"},
+                {"key": "modelo_id", "label": "Modelo", "tipo": "select", "fonte": _fonte_modelos, "depende_de": "marca_id", "opcional": True},
                 {"key": "chassi", "label": "Chassi"},
                 {"key": "ano_fabricacao", "label": "Ano de fabricação", "tipo": "int"},
                 {"key": "cor", "label": "Cor"},

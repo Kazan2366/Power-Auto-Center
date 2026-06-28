@@ -153,6 +153,9 @@ class VendasView(ctk.CTkFrame):
     def _limpar_carrinho(self):
         self._carrinho = []
         self._render_carrinho()
+        self.ent_qtd.delete(0, "end")
+        self.ent_qtd.insert(0, "1")
+        self._preencher_preco()
 
     def _registrar(self):
         if not self._carrinho:
@@ -191,6 +194,7 @@ class VendasView(ctk.CTkFrame):
             messagebox.showerror("Erro", str(exc))
             return
         self.recarregar()
+        messagebox.showinfo("Vendas", "Venda excluída com sucesso.")
 
     def recarregar(self):
         self._carregar_produtos()

@@ -12,7 +12,7 @@ _RESUMO = [
     ("receita_servicos", "Receita de serviços", theme.COR_SUCESSO),
     ("receita_total", "Receita total", theme.COR_PRIMARIA),
     ("despesa_salarios", "Despesa com salários", theme.COR_PERIGO),
-    ("saldo", "Saldo", "#7c3aed"),
+    ("saldo", "Saldo", theme.COR_ROXO),
 ]
 
 
