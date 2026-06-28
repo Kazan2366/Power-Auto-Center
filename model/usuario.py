@@ -1,3 +1,6 @@
+from database.security import hash_password, is_password_hash
+
+
 class Usuario:
     """DAO da tabela `users` (autenticação / perfis de acesso).
 
@@ -12,7 +15,7 @@ class Usuario:
         cur = self.connection.cursor()
         cur.execute(
             "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-            (username, password, role),
+            (username, self._normalizar_senha(password), role),
         )
         self.connection.commit()
         return cur.lastrowid
@@ -36,7 +39,7 @@ class Usuario:
         cur = self.connection.cursor()
         cur.execute(
             "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?",
-            (username, password, role, user_id),
+            (username, self._normalizar_senha(password), role, user_id),
         )
         self.connection.commit()
 
@@ -44,3 +47,7 @@ class Usuario:
         cur = self.connection.cursor()
         cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
         self.connection.commit()
+
+    @staticmethod
+    def _normalizar_senha(password):
+        return password if is_password_hash(password) else hash_password(password)
