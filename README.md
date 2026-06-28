@@ -67,7 +67,7 @@ O menu lateral é **filtrado pelo perfil** autenticado (definido em
 | Perfil | Itens visíveis |
 |---|---|
 | `cadastro` | Dashboard, Clientes, Funcionários, Usuários, Marcas, Categorias, Modelos, Veículos, Peças, Estoque, Relatórios, Backup |
-| `vendas` | Dashboard, Clientes, Veículos, **Vendas**, Financeiro, Relatórios |
+| `vendas` | Dashboard, Clientes, Veículos, Estoque, **Vendas**, Financeiro, Relatórios |
 | `mecanico` | Dashboard, Clientes, Veíc. Clientes, Ordens Serviço, Peças, Estoque |
 | `admin` | Todos os itens |
 
@@ -121,8 +121,9 @@ python seed_exemplos.py           # cadastra 3 exemplos de cada entidade (opcion
 python -m pytest -q               # roda a suíte de testes
 ```
 
-Login (usuários-semente): `Cadastrar23/4590` (cadastro), `Vendendor13/8955`
-(vendas), `Mecânico/7675` (mecanico).
+Login (usuários-semente, todos com senha `senha123`): `operador.cadastro`
+(cadastro), `operador.vendas` (vendas), `operador.mecanico` (mecanico),
+`operador.admin` (admin).
 
 Exemplo de consumo pelo frontend:
 
@@ -144,8 +145,9 @@ IF NOT EXISTS` — idempotente). Entidades: `users`, `funcionarios`, `marcas`,
 `clientes`, `modelos`, `veiculos`, `categorias_peca`, `pecas`, `veiculo_cliente`,
 `estoque_veiculos`, `estoque_pecas`, `vendas`, `venda_itens`, `ordem_servico`.
 
-Usuários-semente (ambiente de teste): `Cadastrar23/4590` (cadastro),
-`Vendendor13/8955` (vendas), `Mecânico/7675` (mecanico).
+Usuários-semente (ambiente de teste, todos com senha `senha123`):
+`operador.cadastro` (cadastro), `operador.vendas` (vendas), `operador.mecanico`
+(mecanico), `operador.admin` (admin).
 
 ## Notas para o frontend
 
